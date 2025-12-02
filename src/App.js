@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { Activity, Zap, AlertTriangle, TrendingDown, Gauge, Battery, Thermometer, Upload, User, Bot, Send, Clock, Database, AlertCircle, CheckCircle, BarChart3, Cpu } from 'lucide-react';
+import { 
+  Activity, Zap, AlertTriangle, TrendingDown, Gauge, Battery, Thermometer, 
+  Upload, User, Bot, Send, Clock, Database, AlertCircle, CheckCircle, 
+  BarChart3, Cpu, Brain, Target, TrendingUp, Sparkles 
+} from 'lucide-react';
 import Papa from 'papaparse';
 
 const EcoDrivingDashboard = () => {
@@ -822,7 +826,7 @@ Réponds en français de manière précise et technique, en te basant sur les do
           </div>
         </div>
       </div>
-
+      <RealTimePredictionsSection />
       {/* ChatBot amélioré */}
       <div className="bg-white rounded-xl shadow-md p-4 md:p-6 mt-8">
         <div className="flex items-center justify-between mb-4">
@@ -967,6 +971,608 @@ Réponds en français de manière précise et technique, en te basant sur les do
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+// DÉPLACER RealTimePredictionsSection ICI (après EcoDrivingDashboard mais avant export default)
+const RealTimePredictionsSection = () => {
+  // État pour les valeurs d'entrée (avec valeurs par défaut réalistes)
+  const [inputValues, setInputValues] = useState({
+    rpm: 1800,
+    speed: 65,
+    battery: 88,
+    engine_load: 42,
+    coolant_temp: 82,
+    fuel_rate: 7.8,
+    acceleration_x: 0.15,
+    acceleration_y: -0.05,
+    acceleration_z: 9.81,
+    distance_traveled: 14500
+  });
+
+  // État pour les prédictions de tous les modèles
+  const [predictions, setPredictions] = useState({
+    random_forest: null,
+    xgboost: null,
+    lightgbm: null,
+    neural_network: null,
+    loading: false,
+    lastUpdate: null
+  });
+
+  // État pour les données du véhicule (pour la simulation)
+  const [vehicleData, setVehicleData] = useState({
+    eco_score: 78,
+    safety_score: 85,
+    fuel_efficiency: 12.5,
+    co2_saved: 4.8,
+    current_alarm: 0
+  });
+
+  // Modèles disponibles avec descriptions
+  const MODELS = [
+    { 
+      id: 'random_forest', 
+      name: 'Random Forest', 
+      description: 'Ensemble d\'arbres de décision',
+      color: 'from-green-400 to-emerald-600',
+      icon: '🌲'
+    },
+    { 
+      id: 'xgboost', 
+      name: 'XGBoost', 
+      description: 'Gradient boosting optimisé',
+      color: 'from-blue-400 to-cyan-600',
+      icon: '🚀'
+    },
+    { 
+      id: 'lightgbm', 
+      name: 'LightGBM', 
+      description: 'Arbres basés sur histogrammes',
+      color: 'from-purple-400 to-violet-600',
+      icon: '⚡'
+    },
+    { 
+      id: 'neural_network', 
+      name: 'Réseau Neuronal', 
+      description: 'Deep learning multicouche',
+      color: 'from-red-400 to-pink-600',
+      icon: '🧠'
+    }
+  ];
+
+  // Types d'alarmes
+  const ALARM_TYPES = [
+    { level: 0, name: 'Normal', description: 'Conduite optimale', color: 'bg-green-100 text-green-800' },
+    { level: 1, name: 'Faible', description: 'Freinage brusque', color: 'bg-blue-100 text-blue-800' },
+    { level: 2, name: 'Modéré', description: 'Accélération brusque', color: 'bg-yellow-100 text-yellow-800' },
+    { level: 3, name: 'Élevé', description: 'Virage dangereux', color: 'bg-orange-100 text-orange-800' },
+    { level: 4, name: 'Critique', description: 'Sur-vitesse', color: 'bg-red-100 text-red-800' },
+    { level: 5, name: 'Dangereux', description: 'Ralenti prolongé', color: 'bg-red-200 text-red-900' }
+  ];
+
+  // Simulation des prédictions (remplacer par vos appels API réels)
+  const simulatePrediction = async (modelId) => {
+    // Calcul basé sur les valeurs d'entrée (logique simplifiée)
+    const baseScore = 100;
+    
+    // Facteurs de pénalité
+    const rpmPenalty = Math.max(0, (inputValues.rpm - 2000) / 100);
+    const speedPenalty = Math.max(0, (inputValues.speed - 80) / 5);
+    const accelerationPenalty = Math.abs(inputValues.acceleration_x) * 10;
+    
+    // Calcul du score (100 = parfait, 0 = très mauvais)
+    let ecoScore = Math.max(0, baseScore - rpmPenalty - speedPenalty - accelerationPenalty);
+    
+    // Ajout d'aléatoire pour simuler différentes prédictions
+    const randomFactor = 0.8 + Math.random() * 0.4;
+    ecoScore = Math.min(100, Math.max(0, ecoScore * randomFactor));
+    
+    // Détermination du niveau d'alarme basé sur le score
+    let alarmLevel = 0;
+    if (ecoScore >= 80) alarmLevel = 0;
+    else if (ecoScore >= 60) alarmLevel = 1;
+    else if (ecoScore >= 40) alarmLevel = 2;
+    else if (ecoScore >= 25) alarmLevel = 3;
+    else if (ecoScore >= 10) alarmLevel = 4;
+    else alarmLevel = 5;
+
+    // Confiance basée sur la cohérence des données
+    const confidence = 0.75 + Math.random() * 0.2;
+
+    // Recommandations basées sur le score
+    const recommendations = [];
+    if (inputValues.rpm > 2500) recommendations.push("Réduire le régime moteur (RPM)");
+    if (inputValues.speed > 90) recommendations.push("Réduire la vitesse");
+    if (Math.abs(inputValues.acceleration_x) > 0.3) recommendations.push("Adoucir l'accélération");
+    if (inputValues.engine_load > 80) recommendations.push("Réduire la charge moteur");
+
+    return {
+      success: true,
+      model_id: modelId,
+      eco_score: Math.round(ecoScore),
+      alarm_level: alarmLevel,
+      alarm_probability: confidence,
+      confidence: confidence,
+      fuel_efficiency_gain: (ecoScore / 100) * 15, // Gain potentiel en %
+      co2_reduction_potential: (ecoScore / 100) * 8, // Réduction CO2 potentielle en kg
+      recommendations: recommendations.slice(0, 3),
+      features_importance: {
+        rpm: 0.35,
+        speed: 0.25,
+        acceleration: 0.20,
+        engine_load: 0.15,
+        battery: 0.05
+      },
+      timestamp: new Date().toISOString()
+    };
+  };
+
+  // Mettre à jour toutes les prédictions
+  const updateAllPredictions = async () => {
+    setPredictions(prev => ({ ...prev, loading: true }));
+    
+    try {
+      const newPredictions = {};
+      
+      // Pour chaque modèle, faire une prédiction
+      for (const model of MODELS) {
+        // Simulation (à remplacer par vos appels API)
+        newPredictions[model.id] = await simulatePrediction(model.id);
+      }
+      
+      // Calculer la prédiction moyenne (consensus)
+      const allScores = Object.values(newPredictions).map(p => p.eco_score);
+      const avgScore = Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length);
+      
+      // Déterminer l'alarme la plus fréquente
+      const alarmLevels = Object.values(newPredictions).map(p => p.alarm_level);
+      const mostCommonAlarm = alarmLevels.sort((a, b) =>
+        alarmLevels.filter(v => v === a).length - alarmLevels.filter(v => v === b).length
+      ).pop();
+      
+      // Mettre à jour les prédictions
+      setPredictions({
+        ...newPredictions,
+        loading: false,
+        lastUpdate: new Date(),
+        consensus: {
+          eco_score: avgScore,
+          alarm_level: mostCommonAlarm,
+          model_count: MODELS.length
+        }
+      });
+      
+      // Mettre à jour les données du véhicule
+      setVehicleData(prev => ({
+        ...prev,
+        eco_score: avgScore,
+        current_alarm: mostCommonAlarm,
+        fuel_efficiency: 10 + (avgScore / 100) * 5,
+        co2_saved: (avgScore / 100) * 6
+      }));
+      
+    } catch (error) {
+      console.error('Erreur lors des prédictions:', error);
+      setPredictions(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  // Mettre à jour les prédictions quand les valeurs d'entrée changent
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateAllPredictions();
+    }, 500); // Délai pour éviter trop d'appels
+
+    return () => clearTimeout(timer);
+  }, [inputValues]);
+
+  // Mettre à jour périodiquement
+  useEffect(() => {
+    const interval = setInterval(() => {
+      updateAllPredictions();
+    }, 30000); // Toutes les 30 secondes
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fonction pour formater l'heure
+  const formatTime = (date) => {
+    if (!date) return '--:--:--';
+    return date.toLocaleTimeString('fr-FR', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      second: '2-digit' 
+    });
+  };
+
+  return (
+    <div className="mt-8">
+      {/* En-tête */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-xl font-bold text-gray-800 flex items-center">
+            <Brain className="mr-2 text-green-600" size={24} />
+            Prédictions IA en Temps Réel
+          </h3>
+          <p className="text-gray-600 text-sm mt-1">
+            Analyse simultanée par {MODELS.length} modèles d'IA • Mise à jour automatique
+          </p>
+        </div>
+        {predictions.lastUpdate && (
+          <div className="text-right">
+            <div className="text-xs text-gray-500">Dernière mise à jour</div>
+            <div className="text-sm font-medium text-gray-700">
+              {formatTime(predictions.lastUpdate)}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Scores principaux (Consensus) */}
+      {predictions.consensus && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {/* Éco-Score */}
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border border-green-200 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <Gauge className="text-green-600 mr-2" size={20} />
+                <span className="font-semibold text-gray-800">Éco-Score</span>
+              </div>
+              <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
+                Consensus
+              </span>
+            </div>
+            <div className="flex items-baseline">
+              <span className="text-3xl font-bold text-gray-800">
+                {predictions.consensus.eco_score}
+              </span>
+              <span className="text-lg text-gray-600 ml-1">/100</span>
+            </div>
+            <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all duration-500 ${
+                  predictions.consensus.eco_score >= 80 ? 'bg-green-500' :
+                  predictions.consensus.eco_score >= 60 ? 'bg-yellow-500' :
+                  predictions.consensus.eco_score >= 40 ? 'bg-orange-500' : 'bg-red-500'
+                }`}
+                style={{ width: `${predictions.consensus.eco_score}%` }}
+              ></div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              {predictions.consensus.eco_score >= 80 ? 'Excellent' :
+              predictions.consensus.eco_score >= 60 ? 'Bon' :
+              predictions.consensus.eco_score >= 40 ? 'Moyen' : 'À améliorer'}
+            </p>
+          </div>
+
+          {/* Niveau d'Alerte */}
+          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-5 border border-blue-200 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <AlertTriangle className="text-blue-600 mr-2" size={20} />
+                <span className="font-semibold text-gray-800">Niveau d'Alerte</span>
+              </div>
+              <span className={`text-xs px-2 py-1 rounded-full ${
+                ALARM_TYPES[predictions.consensus.alarm_level]?.color || 'bg-gray-100 text-gray-800'
+              }`}>
+                {ALARM_TYPES[predictions.consensus.alarm_level]?.name || 'Inconnu'}
+              </span>
+            </div>
+            <div className="flex items-baseline">
+              <span className="text-3xl font-bold text-gray-800">
+                Niveau {predictions.consensus.alarm_level}
+              </span>
+            </div>
+            <p className="text-sm text-gray-600 mt-2">
+              {ALARM_TYPES[predictions.consensus.alarm_level]?.description || 'Aucune description'}
+            </p>
+          </div>
+
+          {/* Efficacité Carburant */}
+          <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-xl p-5 border border-purple-200 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <Activity className="text-purple-600 mr-2" size={20} />
+                <span className="font-semibold text-gray-800">Efficacité</span>
+              </div>
+              <span className="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded-full">
+                Potentiel
+              </span>
+            </div>
+            <div className="flex items-baseline">
+              <span className="text-3xl font-bold text-gray-800">
+                {vehicleData.fuel_efficiency.toFixed(1)}
+              </span>
+              <span className="text-lg text-gray-600 ml-1">km/L</span>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              {vehicleData.fuel_efficiency > 12 ? 'Très efficace' :
+              vehicleData.fuel_efficiency > 10 ? 'Efficace' :
+              vehicleData.fuel_efficiency > 8 ? 'Moyen' : 'Peu efficace'}
+            </p>
+          </div>
+
+          {/* CO2 Économisé */}
+          <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-5 border border-orange-200 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <Sparkles className="text-orange-600 mr-2" size={20} />
+                <span className="font-semibold text-gray-800">CO2 Économisé</span>
+              </div>
+              <span className="text-xs px-2 py-1 bg-orange-100 text-orange-800 rounded-full">
+                Cumul
+              </span>
+            </div>
+            <div className="flex items-baseline">
+              <span className="text-3xl font-bold text-gray-800">
+                {vehicleData.co2_saved.toFixed(1)}
+              </span>
+              <span className="text-lg text-gray-600 ml-1">kg</span>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Équivalent {Math.round(vehicleData.co2_saved * 100)} arbres plantés
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Prédictions par modèle */}
+      <div className="mb-6">
+        <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          <Cpu className="mr-2 text-gray-600" size={20} />
+          Comparaison des Modèles d'IA
+        </h4>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {MODELS.map(model => {
+            const prediction = predictions[model.id];
+            
+            return (
+              <div key={model.id} className="bg-white rounded-xl border p-4 hover:shadow-md transition-shadow">
+                {/* En-tête du modèle */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center">
+                    <span className="text-xl mr-2">{model.icon}</span>
+                    <div>
+                      <div className="font-semibold text-gray-800 text-sm">{model.name}</div>
+                      <div className="text-xs text-gray-500">{model.description}</div>
+                    </div>
+                  </div>
+                  {prediction && (
+                    <div className={`text-xs px-2 py-1 rounded-full ${
+                      prediction.confidence >= 0.8 ? 'bg-green-100 text-green-800' :
+                      prediction.confidence >= 0.6 ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {(prediction.confidence * 100).toFixed(0)}%
+                    </div>
+                  )}
+                </div>
+
+                {/* Contenu de la prédiction */}
+                {prediction ? (
+                  <div>
+                    {/* Score et Alerte */}
+                    <div className="flex justify-between items-center mb-3">
+                      <div>
+                        <div className="text-xs text-gray-500">Éco-Score</div>
+                        <div className="text-xl font-bold text-gray-800">
+                          {prediction.eco_score}<span className="text-sm text-gray-600">/100</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500">Alerte</div>
+                        <div className={`text-sm font-semibold px-2 py-1 rounded ${
+                          ALARM_TYPES[prediction.alarm_level]?.color || 'bg-gray-100 text-gray-800'
+                        }`}>
+                          Niv. {prediction.alarm_level}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Barre de progression */}
+                    <div className="mb-3">
+                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>Performance</span>
+                        <span>{prediction.eco_score}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5">
+                        <div 
+                          className={`h-1.5 rounded-full transition-all duration-500 bg-gradient-to-r ${model.color}`}
+                          style={{ width: `${prediction.eco_score}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    {/* Recommandation principale */}
+                    {prediction.recommendations && prediction.recommendations.length > 0 && (
+                      <div className="text-xs text-gray-600 mt-2">
+                        <div className="font-medium mb-1">💡 Recommandation:</div>
+                        <div className="truncate">{prediction.recommendations[0]}</div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-300 mx-auto mb-2"></div>
+                    <div className="text-xs text-gray-500">Chargement...</div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Contrôles d'ajustement (simulation) */}
+      <div className="bg-gray-50 rounded-xl p-4 mb-6">
+        <h4 className="text-lg font-semibold text-gray-800 mb-4">
+          <Target className="inline mr-2" size={20} />
+          Simulation des Paramètres d'Entrée
+        </h4>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* RPM */}
+          <div className="bg-white p-4 rounded-lg border">
+            <div className="flex justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">RPM Moteur</span>
+              <span className="text-sm font-bold text-gray-800">{inputValues.rpm} rpm</span>
+            </div>
+            <input
+              type="range"
+              min="800"
+              max="5000"
+              value={inputValues.rpm}
+              onChange={(e) => setInputValues(prev => ({ ...prev, rpm: parseInt(e.target.value) }))}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            />
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>Faible</span>
+              <span>Optimal: 1500-2500</span>
+              <span>Élevé</span>
+            </div>
+          </div>
+
+          {/* Vitesse */}
+          <div className="bg-white p-4 rounded-lg border">
+            <div className="flex justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">Vitesse</span>
+              <span className="text-sm font-bold text-gray-800">{inputValues.speed} km/h</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="180"
+              value={inputValues.speed}
+              onChange={(e) => setInputValues(prev => ({ ...prev, speed: parseInt(e.target.value) }))}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            />
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>Lente</span>
+              <span>Optimal: 70-90</span>
+              <span>Rapide</span>
+            </div>
+          </div>
+
+          {/* Accélération */}
+          <div className="bg-white p-4 rounded-lg border">
+            <div className="flex justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">Accélération X</span>
+              <span className="text-sm font-bold text-gray-800">{inputValues.acceleration_x.toFixed(2)} g</span>
+            </div>
+            <input
+              type="range"
+              min="-2"
+              max="2"
+              step="0.1"
+              value={inputValues.acceleration_x}
+              onChange={(e) => setInputValues(prev => ({ ...prev, acceleration_x: parseFloat(e.target.value) }))}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            />
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>Freinage</span>
+              <span>Neutre</span>
+              <span>Accélération</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="mt-4 text-center">
+          <button
+            onClick={updateAllPredictions}
+            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center mx-auto"
+          >
+            <Zap size={16} className="mr-2" />
+            Actualiser les Prédictions
+          </button>
+          <p className="text-xs text-gray-500 mt-2">
+            Les prédictions se mettent à jour automatiquement quand vous ajustez les valeurs
+          </p>
+        </div>
+      </div>
+
+      {/* Tableau de comparaison détaillée */}
+      {Object.values(predictions).some(p => p && typeof p === 'object' && p.success) && (
+        <div className="bg-white rounded-xl border p-4">
+          <h4 className="text-lg font-semibold text-gray-800 mb-4">
+            📊 Comparaison Détailée des Prédictions
+          </h4>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-3 font-medium text-gray-700">Modèle</th>
+                  <th className="text-left py-2 px-3 font-medium text-gray-700">Éco-Score</th>
+                  <th className="text-left py-2 px-3 font-medium text-gray-700">Niveau Alerte</th>
+                  <th className="text-left py-2 px-3 font-medium text-gray-700">Confiance</th>
+                  <th className="text-left py-2 px-3 font-medium text-gray-700">Efficacité +</th>
+                  <th className="text-left py-2 px-3 font-medium text-gray-700">Recommandations</th>
+                </tr>
+              </thead>
+              <tbody>
+                {MODELS.map(model => {
+                  const prediction = predictions[model.id];
+                  if (!prediction || !prediction.success) return null;
+                  
+                  return (
+                    <tr key={model.id} className="border-b hover:bg-gray-50">
+                      <td className="py-3 px-3">
+                        <div className="flex items-center">
+                          <span className="mr-2">{model.icon}</span>
+                          <span className="font-medium">{model.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center">
+                          <div className={`w-16 h-2 bg-gray-200 rounded-full mr-2`}>
+                            <div 
+                              className={`h-2 rounded-full ${
+                                prediction.eco_score >= 80 ? 'bg-green-500' :
+                                prediction.eco_score >= 60 ? 'bg-yellow-500' :
+                                prediction.eco_score >= 40 ? 'bg-orange-500' : 'bg-red-500'
+                              }`}
+                              style={{ width: `${prediction.eco_score}%` }}
+                            ></div>
+                          </div>
+                          <span className="font-bold">{prediction.eco_score}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className={`px-2 py-1 rounded text-xs ${ALARM_TYPES[prediction.alarm_level]?.color}`}>
+                          Niveau {prediction.alarm_level}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center">
+                          <div className="w-16 h-2 bg-gray-200 rounded-full mr-2">
+                            <div 
+                              className="h-2 rounded-full bg-blue-500"
+                              style={{ width: `${prediction.confidence * 100}%` }}
+                            ></div>
+                          </div>
+                          <span>{(prediction.confidence * 100).toFixed(0)}%</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="font-medium text-green-700">
+                          +{prediction.fuel_efficiency_gain?.toFixed(1) || '0'}%
+                        </span>
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="text-xs text-gray-600">
+                          {prediction.recommendations?.[0] || 'Aucune'}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
